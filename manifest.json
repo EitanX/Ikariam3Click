@@ -1,11 +1,20 @@
 {
   "manifest_version": 3,
   "name": "Ikariam 3Click",
-  "version": "1.0",
-  "description": "Clicks for tasks",
-  "permissions": ["activeTab", "scripting"],
-  "host_permissions": ["https://*.ikariam.gameforge.com/*"],
+  "version": "1.5",
+  "permissions": [
+    "webRequest",
+    "activeTab",
+    "storage"
+  ],
+  "host_permissions": [
+    "https://*.ikariam.gameforge.com/*"
+  ],
+  "background": {
+    "service_worker": "background.js"
+  },
   "action": {
     "default_popup": "popup.html"
   }
 }
+

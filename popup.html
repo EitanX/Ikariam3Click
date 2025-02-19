@@ -1,18 +1,20 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Ikariam 3Click</title>
+    <title>Ikariam 3Click v1.4</title>
     <style>
-      body { 
-        font-family: Arial, sans-serif; 
-        padding: 20px; 
-        min-width: 220px;
-        text-align: center; 
+      body {
+        font-family: Arial, sans-serif;
+        padding: 20px;
+        min-width: 280px;
+        text-align: center;
       }
 
-      #status {
-        font-size: 14px;
-        margin-bottom: 15px;
+      .info {
+        font-size: 13px;
+        font-weight: bold;
+        color: #2c3e50;
+        margin-bottom: 10px;
       }
 
       button {
@@ -20,21 +22,51 @@
         font-size: 14px;
         font-weight: bold;
         cursor: pointer;
-        border: 1px solid #ccc;
         border-radius: 5px;
-        transition: all 0.3s;
+        border: 1px solid #ccc;
+        transition: background-color 0.3s;
       }
 
-      button:disabled {
-        background-color: #ccc;
-        cursor: not-allowed;
+      button:hover {
+        opacity: 0.9;
       }
     </style>
   </head>
   <body>
-    <h3>Ikariam 3Click</h3>
-    <p id="status">Checking server...</p>
-    <button id="sendRequests" disabled>Send Requests</button>
+    <h3>Ikariam 3Click v1.4</h3>
+
+    <div>
+  <strong>Connected Server:</strong> <span id="serverName">Detecting...</span>
+</div>
+  <div>
+  <strong>Captured ikariam Cookie:</strong> <span id="cookieValue">Waiting...</span>
+</div>
+    <div>
+  <strong>City ID:</strong> <span id="cityIdValue">Waiting...</span>
+</div>
+
+<div>
+  <strong>Current Action Request:</strong> <span id="actionRequestValue">Loading...</span>
+</div>
+<div>
+  <strong>Captured cinema videoId:</strong> <span id="videoIdValue">Waiting...</span>
+</div>
+
+    
+    
+    <h3>~~~~~~~~~~~~~~~</h3>
+    <!-- Existing Buttons -->
+    <p>instant</p>
+    <button id="btnSendRequests">Highscore, Shop, Inventory</button>
+    <p>25 seconds each</p>
+    <button id="btnTestAndBonus51">Wood</button>
+    <button id="btnTestAndBonus52">Marbel</button>
+    <button id="btnTestAndBonus53">50 Favour</button>
+    <p>75 seconds</p>
+    <button id="btnSequence">All Bonuses</button>
+    <p>Refresh</p>
+    <button id="refreshBtn">Refresh Data</button>
+  
     <script src="popup.js"></script>
   </body>
 </html>

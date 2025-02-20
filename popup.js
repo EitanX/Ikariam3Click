@@ -6,8 +6,6 @@ document.addEventListener("DOMContentLoaded", () => {
   const cityIdElement = document.getElementById("cityIdValue");
   const cookieElement = document.getElementById("cookieValue");
   const actionRequestElement = document.getElementById("actionRequestValue");
-  const prevActionRequestElement = document.getElementById("prevActionRequestValue");
-  const autoActionRequestElement = document.getElementById("autoActionRequestValue");
   const videoIdElement = document.getElementById("videoIdValue");
 
   const btnSendRequests = document.getElementById("btnSendRequests");
@@ -19,7 +17,7 @@ document.addEventListener("DOMContentLoaded", () => {
 
     chrome.storage.local.get(["cityId"], (data) => {
     if (!data.cityId) {
-      chrome.runtime.sendMessage({ action: "fetchBasicData" });
+      chrome.runtime.sendMessage({ action: "prepVideo" });
     }
   });
 
@@ -46,16 +44,10 @@ document.addEventListener("DOMContentLoaded", () => {
   // Load & Display Existing Data (Initial Load)
   // =============================
   chrome.storage.local.get(
-    ["actionRequest", "autoActionRequest", "prevActionRequest", "ikariamCookie", "videoId", "cityId"],
+    ["actionRequest", "ikariamCookie", "videoId", "cityId"],
     (data) => {
       if (actionRequestElement) {
         actionRequestElement.textContent = data.actionRequest || "No current AR.";
-      }
-      if (autoActionRequestElement) {
-        autoActionRequestElement.textContent = data.autoActionRequest || "No auto AR.";
-      }
-      if (prevActionRequestElement) {
-        prevActionRequestElement.textContent = data.prevActionRequest || "No previous AR.";
       }
       if (cookieElement) {
         cookieElement.textContent = data.ikariamCookie || "No cookie captured.";
@@ -81,30 +73,34 @@ document.addEventListener("DOMContentLoaded", () => {
   if (btnTestAndBonus51) {
     btnTestAndBonus51.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "bonus", bonusId: 51 });
+      startSingleBonusTimer(btnTestAndBonus51, 51);
     });
   }
 
   if (btnTestAndBonus52) {
     btnTestAndBonus52.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "bonus", bonusId: 52 });
+      startSingleBonusTimer(btnTestAndBonus52, 52);
     });
   }
 
   if (btnTestAndBonus53) {
     btnTestAndBonus53.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "bonus", bonusId: 53 });
+      startSingleBonusTimer(btnTestAndBonus53, 53);
     });
   }
 
   if (btnSequence) {
     btnSequence.addEventListener("click", () => {
       chrome.runtime.sendMessage({ action: "sequenceOfBonuses" });
+      startBonusSequenceTimer(btnSequence);
     });
   }
 
   if (refreshBtn) {
     refreshBtn.addEventListener("click", () => {
-      chrome.runtime.sendMessage({ action: "fetchBasicData" });
+      chrome.runtime.sendMessage({ action: "prepVideo" });
     });
   }
 
@@ -112,15 +108,8 @@ document.addEventListener("DOMContentLoaded", () => {
   // Listen for Changes & Update Display
   // =============================
   chrome.storage.onChanged.addListener((changes) => {
-    console.log("📊 chrome.storage changes detected:", changes);
     if (changes.actionRequest && actionRequestElement) {
       actionRequestElement.textContent = changes.actionRequest.newValue || "No current AR.";
-    }
-    if (changes.prevActionRequest && prevActionRequestElement) {
-      prevActionRequestElement.textContent = changes.prevActionRequest.newValue || "No previous AR.";
-    }
-    if (changes.autoActionRequest && autoActionRequestElement) {
-      autoActionRequestElement.textContent = changes.autoActionRequest.newValue || "No auto AR.";
     }
     if (changes.ikariamCookie && cookieElement) {
       cookieElement.textContent = changes.ikariamCookie.newValue || "No cookie.";
@@ -133,4 +122,66 @@ document.addEventListener("DOMContentLoaded", () => {
     }
   });
 });
+
+function startBonusSequenceTimer(button) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  
+  let timeLeft = 80;
+  const timer = setInterval(() => {
+    button.textContent = `${originalText} (${timeLeft}s)`;
+    timeLeft--;
+    
+    if (timeLeft < 0) {
+      clearInterval(timer);
+      button.textContent = originalText;
+      button.disabled = false;
+      button.classList.remove('running');
+    }
+  }, 1000);
+  
+  button.classList.add('running');
+  
+  // Listen for sequence completion
+  chrome.runtime.onMessage.addListener(function listener(message) {
+    if (message.type === 'sequenceComplete') {
+      button.classList.add('completed');
+      setTimeout(() => {
+        button.classList.remove('completed');
+      }, 3000); // Remove green color after 3 seconds
+      chrome.runtime.onMessage.removeListener(listener);
+    }
+  });
+}
+
+function startSingleBonusTimer(button, bonusId) {
+  const originalText = button.textContent;
+  button.disabled = true;
+  
+  let timeLeft = 25;
+  const timer = setInterval(() => {
+    button.textContent = `${originalText} (${timeLeft}s)`;
+    timeLeft--;
+    
+    if (timeLeft < 0) {
+      clearInterval(timer);
+      button.textContent = originalText;
+      button.disabled = false;
+      button.classList.remove('running');
+    }
+  }, 1000);
+  
+  button.classList.add('running');
+  
+  // Listen for bonus completion with matching bonusId
+  chrome.runtime.onMessage.addListener(function listener(message) {
+    if (message.type === 'bonusComplete' && message.bonusId === bonusId) {
+      button.classList.add('completed');
+      setTimeout(() => {
+        button.classList.remove('completed');
+      }, 3000);
+      chrome.runtime.onMessage.removeListener(listener);
+    }
+  });
+}
 

@@ -30,30 +30,44 @@
       button:hover {
         opacity: 0.9;
       }
+
+      button:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+      
+      button.running {
+        background-color: #f0ad4e;
+        border-color: #eea236;
+        color: white;
+      }
+      
+      button.completed {
+        background-color: #5cb85c;
+        border-color: #4cae4c;
+        color: white;
+      }
     </style>
   </head>
   <body>
     <h3>Ikariam 3Click v1.4</h3>
 
     <div>
-  <strong>Connected Server:</strong> <span id="serverName">Detecting...</span>
-</div>
-  <div>
-  <strong>Captured ikariam Cookie:</strong> <span id="cookieValue">Waiting...</span>
-</div>
+      <strong>Connected Server:</strong> <span id="serverName">Detecting...</span>
+    </div>
     <div>
-  <strong>City ID:</strong> <span id="cityIdValue">Waiting...</span>
-</div>
+      <strong>Captured ikariam Cookie:</strong> <span id="cookieValue">Waiting...</span>
+    </div>
+    <div>
+      <strong>City ID:</strong> <span id="cityIdValue">Waiting...</span>
+    </div>
+    <div>
+      <strong>Current Action Request:</strong> <span id="actionRequestValue">Loading...</span>
+    </div>
+    <div>
+      <strong>Captured cinema videoId:</strong> <span id="videoIdValue">Waiting...</span>
+    </div>
 
-<div>
-  <strong>Current Action Request:</strong> <span id="actionRequestValue">Loading...</span>
-</div>
-<div>
-  <strong>Captured cinema videoId:</strong> <span id="videoIdValue">Waiting...</span>
-</div>
-
-    
-    
     <h3>~~~~~~~~~~~~~~~</h3>
     <!-- Existing Buttons -->
     <p>instant</p>
@@ -62,7 +76,7 @@
     <button id="btnTestAndBonus51">Wood</button>
     <button id="btnTestAndBonus52">Marbel</button>
     <button id="btnTestAndBonus53">50 Favour</button>
-    <p>75 seconds</p>
+    <p>80 seconds</p>
     <button id="btnSequence">All Bonuses</button>
     <p>Refresh</p>
     <button id="refreshBtn">Refresh Data</button>

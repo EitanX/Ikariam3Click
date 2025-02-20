@@ -1,20 +1,28 @@
 {
   "manifest_version": 3,
   "name": "Ikariam 3Click",
-  "version": "1.5",
+  "version": "2.5",
   "permissions": [
     "webRequest",
     "activeTab",
     "storage"
   ],
   "host_permissions": [
-    "https://*.ikariam.gameforge.com/*"
+    "https://*.ikariam.gameforge.com/*",
+    "https://lobby.ikariam.gameforge.com/*"
   ],
   "background": {
-    "service_worker": "background.js"
+    "service_worker": "background.js",
+    "type": "module"
   },
   "action": {
     "default_popup": "popup.html"
   }
 }
 
+
+// index.php update can give me this info:
+// {"actionRequest":"f7ff8e2ac79d11e553318a8d7c9e67e2",
+// currentCityId\":13468
+// ,"adVideoHappeningActive":1,
+// "dailyTasks":"2","cityCinema":"active",

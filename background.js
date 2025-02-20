@@ -1,175 +1,87 @@
-function sleep(ms) {
-  return new Promise(resolve => setTimeout(resolve, ms));
-}
+import { sleep, storeActionRequest, getStorage, setStorage } from './storage.js';
 
-// =============================
-// GLOBAL LOCK & SEEN KEYS VECTOR
-// =============================
-let storageLock = false;
-let lockTimeout = null; // Safety timeout
-let seenKeys = [];
-
-// =============================
-// HELPER FUNCTIONS
-// =============================
-async function getStorage(keys) {
-  return new Promise((resolve) => {
-    chrome.storage.local.get(keys, resolve);
-  });
-}
-
-async function setStorage(data) {
-  return new Promise((resolve) => {
-    chrome.storage.local.set(data, resolve);
-  });
-}
-
-// =============================
-// SEEN KEYS MANAGEMENT
-// =============================
-
-// Load seen keys from storage (ALWAYS FRESH)
-async function loadSeenKeys() {
-  const data = await getStorage(["seenKeys"]);
-  seenKeys = Array.isArray(data.seenKeys) ? data.seenKeys : [];
-  //console.log("🔄 Loaded seenKeys:", seenKeys);
-}
-
-// Save seen keys to storage
-async function saveSeenKeys() {
-  await setStorage({ seenKeys });
-  //console.log("💾 Saved seenKeys:", seenKeys);
-}
-
-// Update the seen keys vector (last 10 keys, FIFO)
-function updateSeenKeys(newKey) {
-  if (!seenKeys.includes(newKey)) {
-    if (seenKeys.length >= 10) {
-      seenKeys.shift(); // Remove the oldest key (FIFO)
-    }
-    seenKeys.push(newKey);
-    //console.log("📊 Updated seenKeys vector:", seenKeys);
-  }
-}
-
-// ===============================
-// UNIFIED ACTION REQUEST HANDLER
-// ===============================
-async function updateActionRequests({ newValue, isAuto = false }) {
-  // Wait if another process is writing (with safety timeout)
-  const start = Date.now();
-  while (storageLock) {
-    if (Date.now() - start > 5000) { // Safety: Break lock after 5 seconds
-      //console.warn("⚠️ Storage lock timeout - resetting lock.");
-      storageLock = false;
-      break;
-    }
-    await sleep(10);
-  }
-
-  // Acquire lock
-  storageLock = true;
-
-  // Always load seenKeys fresh (fixing stale reads)
-  await loadSeenKeys();
-
-  // Ignore if key was recently seen
-  if (seenKeys.includes(newValue)) {
-    //console.log(`🚫 Ignored duplicate AR: ${newValue}`);
-    storageLock = false;
-    return;
-  }
-
-  const data = await getStorage(["actionRequest", "autoActionRequest", "prevActionRequest"]);
-  const current = data.actionRequest;
-  const auto = data.autoActionRequest;
-  const prev = data.prevActionRequest;
-
-  //console.log(`Incoming ${isAuto ? "Auto" : "Manual"} AR: ${newValue}`);
-  //console.log(`Stored: curr=${current}, auto=${auto}, prev=${prev}`);
-
-  const updates = {};
-  if (isAuto) {
-    if (newValue && newValue !== auto && newValue !== prev) {
-      updates.actionRequest = newValue;
-      updates.autoActionRequest = newValue;
-      updates.prevActionRequest = current;
-      //console.log("✅ Auto AR updated:", newValue);
-    }
-  } else {
-    if (newValue && newValue !== current) {
-      updates.prevActionRequest = current;
-      updates.actionRequest = newValue;
-      //console.log("✅ Manual AR updated:", newValue);
-    }
-  }
-
-  if (Object.keys(updates).length > 0) {
-    // Store the updates
-    await setStorage(updates);
-    //console.log("💾 Storage updated:", updates);
-
-    // Add new value to seen keys and save
-    updateSeenKeys(newValue);
-    await saveSeenKeys();
-  } else {
-    //console.log("ℹ️ No updates needed.");
-  }
-
-  // Release lock
-  storageLock = false;
-}
-
-// =============================
-// WRAPPER FUNCTIONS
-// =============================
-async function storeActionRequest(newValue) {
-  return updateActionRequests({ newValue, isAuto: false });
-}
-
-async function storeAutoActionRequest(newValue) {
-  return updateActionRequests({ newValue, isAuto: true });
-}
 
 /***************************************************
- * 1. Capture 'ikariam' cookie from request headers
+ * 1. Monitor game server traffic
  ***************************************************/
+// Capture very first load of the site
 chrome.webRequest.onBeforeSendHeaders.addListener(
   (details) => {
+    const url = new URL(details.url);
+    const serverMatch = url.hostname.match(/^(s\d+(?:-[a-z]+)?)\.ikariam\.gameforge.com$/);
+    if (serverMatch) {
+      const subdomain = serverMatch[1];
+      //console.log("🌐 Server detected:", subdomain);
+      chrome.storage.local.set({ ikariamSubdomain: subdomain });
+    }
+    // Look for cookie in request headers
     if (details.requestHeaders) {
       const cookieHeader = details.requestHeaders.find(
-        (header) =>
-          header.name.toLowerCase() === "cookie" &&
-          header.value.includes("ikariam=")
+        header => header.name.toLowerCase() === "cookie"
       );
       if (cookieHeader) {
-        const match = cookieHeader.value.match(/(ikariam=[^;]+)/);
+        const match = cookieHeader.value.match(/ikariam=(\d+_[a-f0-9]+)/);
         if (match) {
-          const ikariamCookie = match[1];
+          const ikariamCookie = `ikariam=${match[1]}`;
+          //console.log("🍪 Extracted cookie:", ikariamCookie);
           chrome.storage.local.set({ ikariamCookie });
         }
+      
       }
     }
   },
   {
     urls: ["https://*.ikariam.gameforge.com/*"],
-    types: ["xmlhttprequest"]
+    types: ["main_frame", "xmlhttprequest"]
   },
   ["requestHeaders", "extraHeaders"]
 );
 
-/***************************************************
- * 2. Capture actionRequest from URL parameters
- ***************************************************/
+// Capture data when loading site + view click
+chrome.webRequest.onResponseStarted.addListener(
+  async (details) => {
+    const url = new URL(details.url);
+    // Check if this is a view request
+    if (url.searchParams.get('view')) {
+      try {
+        const response = await fetch(details.url);
+        const text = await response.text();
+        const actionRequestMatch = text.match(/actionRequest:\s*"([a-zA-Z0-9]+)"/);
+        const cityMatch = text.match(/JSON\.parse\('\{\\\"city_(\d+)/);
+        if (actionRequestMatch) {
+          console.log("🌐 Captured actionRequest:", actionRequestMatch[1]);
+          storeActionRequest(actionRequestMatch[1]);
+        }
+        if (cityMatch) {
+          const cityId = cityMatch[1];
+          console.log("🌐 Captured city ID:", cityId);
+          chrome.storage.local.set({ cityId });
+        }
+      } catch (err) {
+        console.error('Failed to capture view response:', err);
+      }
+    }
+  },
+  {
+    urls: ["https://*.ikariam.gameforge.com/*"],
+    types: ["main_frame"]
+  }
+);
+
+// Capture actionRequest from URL parameters for updateGlobalData
 chrome.webRequest.onCompleted.addListener(
   (details) => {
     const url = new URL(details.url);
     const params = new URLSearchParams(url.search);
+    const paramUpdateGlobalData = params.get("view");
     const actionRequest = params.get("actionRequest");
-
-    if (actionRequest) {
-      //console.log("🌐 Captured actionRequest from URL:", actionRequest);
-      storeAutoActionRequest(actionRequest);
+    if (actionRequest && paramUpdateGlobalData === "updateGlobalData") {
+      console.log(`🌐 Captured actionRequest from updateGlobalData:`, actionRequest);
+      storeActionRequest(actionRequest);
+    } else {
+      //console.log("🚫 NOT UPDATEGLOBALDATA");
+      //console.log(url);
+      //console.log(params);
     }
   },
   {
@@ -178,49 +90,89 @@ chrome.webRequest.onCompleted.addListener(
   }
 );
 
+// Capture data from changing the city /index.php update
+chrome.webRequest.onBeforeRequest.addListener(
+  (details) => {
+    const url = new URL(details.url);
+    if (url.pathname === "/index.php") {
+      if (details.method === "POST" && details.requestBody) {
+          //console.log("📝 POST form data:", details.requestBody.formData);
+          const cityId = details.requestBody.formData.cityId?.[0];
+          const actionRequest = details.requestBody.formData.actionRequest?.[0];
+          
+          if (actionRequest) {
+            console.log("🌐 Captured actionRequest from /index.php:", actionRequest);
+            storeActionRequest(actionRequest);
+          }
+          if (cityId) {
+            console.log("🌐 Captured city ID from /index.php:", cityId);
+            chrome.storage.local.set({ cityId });
+          }
+      }
+    }
+  },
+  {
+    urls: ["https://*.ikariam.gameforge.com/*"],
+    types: ["xmlhttprequest", "main_frame"]
+  },
+  ["requestBody"]
+);
+
 /***************************************************
- * 3. fetchBasicData:
+ * 2. prepVideo:
  *    Fetch the cinema page, parse out videoID & cityID
  ***************************************************/
-async function fetchBasicData() {
-  const { ikariamCookie, ikariamSubdomain } = await getStorage([
-    "ikariamCookie",
-    "ikariamSubdomain"
-  ]);
-  if (!ikariamCookie) {
-    console.error("No ikariamCookie stored!");
-    return;
-  }
-
-  const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=cinema&visit=1`;
+async function prepVideo() {
   try {
+    const { ikariamCookie, ikariamSubdomain } = await getStorage([
+      "ikariamCookie",
+      "ikariamSubdomain"
+    ]);
+    if (!ikariamCookie) {
+      console.error("No ikariamCookie stored!");
+      return false;
+    }
+
+    const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=cinema&visit=1`;
     const response = await fetch(url, {
       method: "POST",
       headers: {
         cookie: ikariamCookie
       }
     });
-
     const responseText = await response.text();
-    const cityIdMatch = responseText.match(/\\"cityID\\":(\d+)/);
+    
     const videoIdMatch = responseText.match(/\\"videoID\\":(\d+)/);
-
     if (videoIdMatch) {
-      chrome.storage.local.set({ videoId: videoIdMatch[1] });
+      console.log("Video ID:", videoIdMatch[1]);
+      await setStorage({ videoId: videoIdMatch[1] });
     }
 
-    if (cityIdMatch) {
-      chrome.storage.local.set({ cityId: cityIdMatch[1] });
+    const actionRequestMatch = responseText.match(/actionRequest:\s*"([a-zA-Z0-9]+)"/);
+    if (actionRequestMatch) {
+      console.log("🌐 Primary AR from prepVideo:", actionRequestMatch[1]);
+      // Force store the action request from prepVideo
+      await storeActionRequest(actionRequestMatch[1], true);
+    } else {
+      console.error("❌ No actionRequest found in prepVideo response!");
+      return false;
     }
+    
+    // const cityIdMatch = responseText.match(/\\"cityID\\":(\d+)/);
+    // if (cityIdMatch) {
+    //   await setStorage({ cityId: cityIdMatch[1] });
+    // }
+    return actionRequestMatch[1];
   } catch (err) {
     console.error("Failed to fetch cinema page:", err);
+    return false;
   }
 }
 
 /***************************************************
- * 4. watchVideo (End Video)
+ * 3. watchVideo (End Video)
  ***************************************************/
-async function watchVideo() {
+async function watchVideo(ARkey) {
   const { actionRequest, ikariamCookie, cityId, videoId, ikariamSubdomain } = await getStorage([
     "actionRequest",
     "ikariamCookie",
@@ -234,21 +186,24 @@ async function watchVideo() {
     return;
   }
 
-  const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=noViewChange&action=AdVideoRewardAction&function=watchVideo&videoId=${videoId}&backgroundView=city&currentCityId=${cityId}&templateView=cinema&actionRequest=${actionRequest}&ajax=1`;
+  //const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=noViewChange&action=AdVideoRewardAction&function=watchVideo&videoId=${videoId}&backgroundView=city&currentCityId=${cityId}&templateView=cinema&actionRequest=${actionRequest}&ajax=1`;
+  const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=noViewChange&action=AdVideoRewardAction&function=watchVideo&videoId=${videoId}&backgroundView=city&currentCityId=${cityId}&templateView=cinema&actionRequest=${ARkey}&ajax=1`;
 
   const bodyParams = new URLSearchParams({
     view: "noViewChange",
     action: "AdVideoRewardAction",
     function: "watchVideo",
-    videoId,
+    videoId: videoId,
     backgroundView: "city",
     currentCityId: cityId,
     templateView: "cinema",
-    actionRequest,
+    actionRequest: ARkey,
     ajax: "1"
   });
 
-  console.log("🎁 2nd half with AR:", actionRequest);
+  //console.log("🎁 2nd half with AR:", actionRequest);
+  console.log("🎁 2nd half with AR:", ARkey);
+
 
   try {
     const response = await fetch(url, {
@@ -262,15 +217,16 @@ async function watchVideo() {
     if (newActionMatch) {
       storeActionRequest(newActionMatch[1]);
     }
+    return newActionMatch[1];
   } catch (err) {
     console.error("watchVideo failed:", err);
   }
 }
 
 /***************************************************
- * 5. requestBonus (Start Video)
+ * 4. requestBonus (Start Video)
  ***************************************************/
-async function requestBonus(bonusId) {
+async function requestBonus(bonusId, ARkey) {
   const { actionRequest, ikariamCookie, cityId, videoId, ikariamSubdomain } = await getStorage([
     "actionRequest",
     "ikariamCookie",
@@ -279,27 +235,29 @@ async function requestBonus(bonusId) {
     "ikariamSubdomain"
   ]);
 
-  if (!ikariamCookie || !ikariamSubdomain || !actionRequest) {
+  if (!ikariamCookie || !ikariamSubdomain || !actionRequest || !ARkey) {
     console.error("Missing data. Cannot request bonus.");
     return;
   }
 
-  const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=noViewChange&action=AdVideoRewardAction&function=requestBonus&bonusId=${bonusId}&videoId=${videoId}&backgroundView=city&currentCityId=${cityId}&templateView=cinema&actionRequest=${actionRequest}&ajax=1`;
+  //const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=noViewChange&action=AdVideoRewardAction&function=requestBonus&bonusId=${bonusId}&videoId=${videoId}&backgroundView=city&currentCityId=${cityId}&templateView=cinema&actionRequest=${actionRequest}&ajax=1`;
+  const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=noViewChange&action=AdVideoRewardAction&function=requestBonus&bonusId=${bonusId}&videoId=${videoId}&backgroundView=city&currentCityId=${cityId}&templateView=cinema&actionRequest=${ARkey}&ajax=1`;
 
   const bodyParams = new URLSearchParams({
     view: "noViewChange",
     action: "AdVideoRewardAction",
     function: "requestBonus",
-    bonusId,
-    videoId,
+    bonusId: bonusId,
+    videoId: videoId,
     backgroundView: "city",
     currentCityId: cityId,
     templateView: "cinema",
-    actionRequest,
+    actionRequest: ARkey,
     ajax: "1"
   });
 
-  console.log("▶️ 1st half with AR:", actionRequest);
+  //console.log("▶️ 1st half with AR:", actionRequest);
+  console.log("▶️ 1st half with AR:", ARkey);
 
   try {
     const response = await fetch(url, {
@@ -313,8 +271,63 @@ async function requestBonus(bonusId) {
     if (newActionMatch) {
       storeActionRequest(newActionMatch[1]);
     }
+    return newActionMatch[1];
   } catch (err) {
     console.error("requestBonus failed:", err);
+  }
+}
+
+
+/***************************************************
+ * 5. Highscore, Shop, Inventory
+ ***************************************************/
+async function sendRequests() {
+  try {
+    // Get stored cookie and subdomain
+    const { ikariamCookie, ikariamSubdomain } = await getStorage([
+      "ikariamCookie",
+      "ikariamSubdomain"
+    ]);
+
+    if (!ikariamCookie || !ikariamSubdomain) {
+      console.error("Missing cookie or subdomain. Cannot send requests.");
+      return;
+    }
+
+    // Define the URLs using the stored subdomain
+    const urls = [
+      `https://${ikariamSubdomain}.ikariam.gameforge.com/index.php?view=highscore&showMe=1`,
+      `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=premium&linkType=2`,
+      `https://${ikariamSubdomain}.ikariam.gameforge.com/?view=inventory`
+    ];
+
+    // Send requests in parallel
+    const requests = urls.map(url => 
+      fetch(url, {
+        method: 'GET',
+        headers: {
+          'cookie': ikariamCookie
+        }
+      })
+    );
+
+    // Wait for all requests to complete
+    const responses = await Promise.all(requests);
+    
+    // Process responses to extract actionRequest if present
+    for (const response of responses) {
+      const text = await response.text();
+      const actionRequestMatch = text.match(/actionRequest:\s*"([a-zA-Z0-9]+)"/);
+      if (actionRequestMatch) {
+        console.log("🌐 Captured actionRequest from sendRequests:", actionRequestMatch[1]);
+        storeActionRequest(actionRequestMatch[1]);
+      }
+    }
+
+    console.log("✅ All requests completed successfully");
+
+  } catch (error) {
+    console.error("Error in sendRequests:", error);
   }
 }
 
@@ -322,10 +335,15 @@ async function requestBonus(bonusId) {
  * 6. Additional Flow Functions
  ***************************************************/
 async function testAndBonusFlow(bonusId) {
-  await fetchBasicData();
-  await requestBonus(bonusId);
-  await sleep(25000);
-  await watchVideo();
+  try {
+    const key1 = await prepVideo();
+    const key2 = await requestBonus(bonusId, key1);
+    await sleep(25000);
+    const key3 = await watchVideo(key2);
+    chrome.runtime.sendMessage({ type: 'bonusComplete', bonusId: bonusId });
+  } catch (error) {
+    console.error('Error in testAndBonusFlow:', error);
+  }
 }
 
 async function sequenceOfBonusesFlow() {
@@ -333,27 +351,35 @@ async function sequenceOfBonusesFlow() {
   await testAndBonusFlow(52);
   await testAndBonusFlow(53);
   console.log("✅ Sequence completed!");
+  // Send message to popup about completion
+  chrome.runtime.sendMessage({ type: 'sequenceComplete' });
 }
 
 /***************************************************
  * 7. Handle messages from popup
  ***************************************************/
-chrome.runtime.onMessage.addListener((message) => {
-  if (message.action === "sendRequests") {
-    sendRequests();
-  } else if (message.action === "bonus") {
-    testAndBonusFlow(message.bonusId);
-  } else if (message.action === "sequenceOfBonuses") {
-    sequenceOfBonusesFlow();
-  } else if (message.action === "fetchBasicData") {
-    fetchBasicData();
-  }
-});
+chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
+  // Create an async function to handle the message
+  const handleMessage = async () => {
+    try {
+      if (message.action === "sendRequests") {
+        await sendRequests();
+      } else if (message.action === "bonus") {
+        await testAndBonusFlow(message.bonusId);
+      } else if (message.action === "sequenceOfBonuses") {
+        await sequenceOfBonusesFlow();
+      } else if (message.action === "prepVideo") {
+        await prepVideo();
+      }
+    } catch (error) {
+      console.error('Error handling message:', error);
+    }
+  };
 
-// ==========================
-// INIT: LOAD SEEN KEYS ON STARTUP
-// ==========================
-loadSeenKeys().then(() => {
-  console.log("🚀 Extension started with seenKeys:", seenKeys);
+  // Execute the async function and keep service worker alive
+  handleMessage();
+  
+  // Return true to indicate we'll handle the response asynchronously
+  return true;
 });
 

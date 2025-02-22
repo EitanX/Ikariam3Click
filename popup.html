@@ -1,87 +1,186 @@
 <!DOCTYPE html>
 <html>
   <head>
-    <title>Ikariam 3Click v1.4</title>
-    <style>
-      body {
-        font-family: Arial, sans-serif;
-        padding: 20px;
-        min-width: 280px;
-        text-align: center;
-      }
-
-      .info {
-        font-size: 13px;
-        font-weight: bold;
-        color: #2c3e50;
-        margin-bottom: 10px;
-      }
-
-      button {
-        padding: 10px 20px;
-        font-size: 14px;
-        font-weight: bold;
-        cursor: pointer;
-        border-radius: 5px;
-        border: 1px solid #ccc;
-        transition: background-color 0.3s;
-      }
-
-      button:hover {
-        opacity: 0.9;
-      }
-
-      button:disabled {
-        opacity: 0.6;
-        cursor: not-allowed;
-      }
-      
-      button.running {
-        background-color: #f0ad4e;
-        border-color: #eea236;
-        color: white;
-      }
-      
-      button.completed {
-        background-color: #5cb85c;
-        border-color: #4cae4c;
-        color: white;
-      }
-    </style>
+    <title>Ikariam 3Click v3.5</title>
+    <link rel="stylesheet" href="popup.css">
   </head>
   <body>
-    <h3>Ikariam 3Click v1.4</h3>
+    <div class="header">
+      <div class="header-content">
+        <div class="header-left">
+          <img src="images/vacation.png" class="header-icon" alt="Ikariam Icon">
+          <div class="header-text">
+            <h3>Ikariam 3Click</h3>
+            <span class="version-tag">v3.5</span>
+          </div>
+        </div>
+        <div class="header-ships">
+          <div class="ship-counter">
+            <img src="images/small_ship.png" class="ship-icon" alt="Small Ships">
+            <span class="smallShips">0</span>
+          </div>
+          <div class="ship-counter">
+            <img src="images/large_ship.png" class="ship-icon" alt="Large Ships">
+            <span class="largeShips">0</span>
+          </div>
+        </div>
+      </div>
+    </div>
 
-    <div>
-      <strong>Connected Server:</strong> <span id="serverName">Detecting...</span>
-    </div>
-    <div>
-      <strong>Captured ikariam Cookie:</strong> <span id="cookieValue">Waiting...</span>
-    </div>
-    <div>
-      <strong>City ID:</strong> <span id="cityIdValue">Waiting...</span>
-    </div>
-    <div>
-      <strong>Current Action Request:</strong> <span id="actionRequestValue">Loading...</span>
-    </div>
-    <div>
-      <strong>Captured cinema videoId:</strong> <span id="videoIdValue">Waiting...</span>
+    <!-- Tab buttons -->
+    <div class="tab-container">
+      <div class="tab-buttons-group">
+        <button class="tab-button active" data-tab="actions">Tasks & Bonuses</button>
+        <button class="tab-button" data-tab="cities">Cities Control</button>
+        <button class="tab-button" data-tab="settings">Settings</button>
+      </div>
+      <button id="tasksRefreshBtn" class="tab-action-button">
+        <span class="refresh-text">Refresh VideoID</span>
+      </button>
     </div>
 
-    <h3>~~~~~~~~~~~~~~~</h3>
-    <!-- Existing Buttons -->
-    <p>instant</p>
-    <button id="btnSendRequests">Highscore, Shop, Inventory</button>
-    <p>25 seconds each</p>
-    <button id="btnTestAndBonus51">Wood</button>
-    <button id="btnTestAndBonus52">Marbel</button>
-    <button id="btnTestAndBonus53">50 Favour</button>
-    <p>80 seconds</p>
-    <button id="btnSequence">All Bonuses</button>
-    <p>Refresh</p>
-    <button id="refreshBtn">Refresh Data</button>
-  
-    <script src="popup.js"></script>
+    <!-- Actions Tab -->
+    <div id="actions" class="tab-content">
+      <div class="status-panel">
+        <div class="status-item">
+          <span class="status-label">Server</span>
+          <span id="serverName" class="status-value">Detecting...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Action Request</span>
+          <span id="actionRequestValue" class="status-value">Loading...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">City ID</span>
+          <span id="cityIdValue" class="status-value">Waiting...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Cookie</span>
+          <span id="cookieValue" class="status-value truncate">Waiting...</span>
+        </div>
+        <div class="status-item">
+          <span class="status-label">Video ID</span>
+          <span id="videoIdValue" class="status-value">Waiting...</span>
+        </div>
+      </div>
+
+      <div class="actions-container">
+        <div class="action-group">
+          <h3 class="action-title">Quick Actions</h3>
+          <button id="btnSendRequests" class="action-button">
+            Highscore, Shop, Inventory
+          </button>
+        </div>
+        
+        <div class="action-group">
+          <h3 class="action-title">Bonus Actions (25s)</h3>
+          <div class="bonus-buttons">
+            <button id="btnTestAndBonus51" class="action-button bonus-button">
+              <img src="images/wood.png" class="bonus-icon">
+              Wood Bonus
+            </button>
+            <button id="btnTestAndBonus52" class="action-button bonus-button">
+              <img src="images/specialTradeGoods.png" class="bonus-icon">
+              Special Bonus
+            </button>
+            <button id="btnTestAndBonus53" class="action-button bonus-button">
+              <img src="images/favour.png" class="bonus-icon">
+              Favour
+            </button>
+          </div>
+          <h3 class="action-title">Sequence (80s)</h3>
+          <button id="btnSequence" class="action-button sequence-button">
+            Run All Bonuses Sequence
+          </button>
+        </div>
+      </div>
+    </div>
+
+    <!-- Cities Tab -->
+    <div id="citiesTab" class="tab-content">
+      <div id="accountsList" class="cities-container">
+        <!-- Cities will be populated here -->
+      </div>
+    </div>
+
+    <!-- Settings Tab (placeholder) -->
+    <div id="settings" class="tab-content">
+      <div class="settings-placeholder">
+        <h3>Settings</h3>
+        <p>Coming in the next version...</p>
+      </div>
+    </div>
+
+    <!-- Template for account display -->
+    <template id="accountTemplate">
+      <div class="account-container">
+        <div class="account-header">
+          <div class="ships-info">
+            Ships - Small:<span class="smallShips"></span> Large:<span class="largeShips"></span>
+          </div>
+        </div>
+        <div class="cities-grid"></div>
+      </div>
+    </template>
+
+    <!-- Template for city display -->
+    <template id="cityTemplate">
+      <div class="city-card">
+        <div class="city-card-content">
+          <div class="city-header clickable">
+            <span class="city-name"></span>
+            <div class="trade-good-badge">
+              <img class="trade-good-icon">
+              <span class="trade-good-text"></span>
+            </div>
+          </div>
+          <div class="resources-grid">
+            <div class="resource-item">
+              <div class="resource-icon-container">
+                <img src="images/wood.png" class="resource-icon">
+              </div>
+              <div class="resource-value wood">0</div>
+            </div>
+            <div class="resource-item">
+              <div class="resource-icon-container">
+                <img src="images/wine.png" class="resource-icon">
+              </div>
+              <div class="resource-value wine">0</div>
+            </div>
+            <div class="resource-item">
+              <div class="resource-icon-container">
+                <img src="images/marble.png" class="resource-icon">
+              </div>
+              <div class="resource-value marble">0</div>
+            </div>
+            <div class="resource-item">
+              <div class="resource-icon-container">
+                <img src="images/crystal.png" class="resource-icon">
+              </div>
+              <div class="resource-value crystal">0</div>
+            </div>
+            <div class="resource-item">
+              <div class="resource-icon-container">
+                <img src="images/sulphur.png" class="resource-icon">
+              </div>
+              <div class="resource-value sulphur">0</div>
+            </div>
+          </div>
+        </div>
+        <div class="city-controls">
+          <div class="controls-content">
+            <h4>City Controls</h4>
+            <div class="control-buttons">
+              <button class="control-btn">Transport</button>
+              <button class="control-btn">Military</button>
+              <button class="control-btn">Buildings</button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </template>
+
+    <script src="popup.js" type="module"></script>
   </body>
 </html>
 

@@ -1,4 +1,5 @@
 import { sleep, storeActionRequest, getStorage, setStorage } from './storage.js';
+import cityManager from './cityManager.js';
 
 
 /***************************************************
@@ -26,7 +27,6 @@ chrome.webRequest.onBeforeSendHeaders.addListener(
           //console.log("🍪 Extracted cookie:", ikariamCookie);
           chrome.storage.local.set({ ikariamCookie });
         }
-      
       }
     }
   },
@@ -46,6 +46,18 @@ chrome.webRequest.onResponseStarted.addListener(
       try {
         const response = await fetch(details.url);
         const text = await response.text();
+        
+        // Get the stored subdomain
+        const { ikariamSubdomain } = await chrome.storage.local.get(['ikariamSubdomain']);
+        if (!ikariamSubdomain) {
+          // Extract and store subdomain if not already stored
+          const subdomainMatch = url.hostname.match(/^(s\d+(?:-[a-z]+)?)\.ikariam\.gameforge\.com$/);
+          if (subdomainMatch) {
+            await chrome.storage.local.set({ ikariamSubdomain: subdomainMatch[1] });
+          }
+        }
+        
+        // Handle actionRequest
         const actionRequestMatch = text.match(/actionRequest:\s*"([a-zA-Z0-9]+)"/);
         const cityMatch = text.match(/JSON\.parse\('\{\\\"city_(\d+)/);
         if (actionRequestMatch) {
@@ -57,6 +69,10 @@ chrome.webRequest.onResponseStarted.addListener(
           console.log("🌐 Captured city ID:", cityId);
           chrome.storage.local.set({ cityId });
         }
+
+        // Pass the response text and subdomain to cityManager
+        await cityManager.processUserData(text, ikariamSubdomain, cityMatch ? cityMatch[1] : null);
+        
       } catch (err) {
         console.error('Failed to capture view response:', err);
       }
@@ -76,7 +92,7 @@ chrome.webRequest.onCompleted.addListener(
     const paramUpdateGlobalData = params.get("view");
     const actionRequest = params.get("actionRequest");
     if (actionRequest && paramUpdateGlobalData === "updateGlobalData") {
-      console.log(`🌐 Captured actionRequest from updateGlobalData:`, actionRequest);
+      //console.log(`🌐 Captured actionRequest from updateGlobalData:`, actionRequest);
       storeActionRequest(actionRequest);
     } else {
       //console.log("🚫 NOT UPDATEGLOBALDATA");
@@ -101,11 +117,11 @@ chrome.webRequest.onBeforeRequest.addListener(
           const actionRequest = details.requestBody.formData.actionRequest?.[0];
           
           if (actionRequest) {
-            console.log("🌐 Captured actionRequest from /index.php:", actionRequest);
+            //console.log("🌐 Captured actionRequest from /index.php:", actionRequest);
             storeActionRequest(actionRequest);
           }
           if (cityId) {
-            console.log("🌐 Captured city ID from /index.php:", cityId);
+            //console.log("🌐 Captured city ID from /index.php:", cityId);
             chrome.storage.local.set({ cityId });
           }
       }
@@ -144,17 +160,17 @@ async function prepVideo() {
     
     const videoIdMatch = responseText.match(/\\"videoID\\":(\d+)/);
     if (videoIdMatch) {
-      console.log("Video ID:", videoIdMatch[1]);
+      //console.log("Video ID:", videoIdMatch[1]);
       await setStorage({ videoId: videoIdMatch[1] });
     }
 
     const actionRequestMatch = responseText.match(/actionRequest:\s*"([a-zA-Z0-9]+)"/);
     if (actionRequestMatch) {
-      console.log("🌐 Primary AR from prepVideo:", actionRequestMatch[1]);
+      //console.log("🌐 Primary AR from prepVideo:", actionRequestMatch[1]);
       // Force store the action request from prepVideo
       await storeActionRequest(actionRequestMatch[1], true);
     } else {
-      console.error("❌ No actionRequest found in prepVideo response!");
+      //console.error("❌ No actionRequest found in prepVideo response!");
       return false;
     }
     
@@ -256,8 +272,8 @@ async function requestBonus(bonusId, ARkey) {
     ajax: "1"
   });
 
-  //console.log("▶️ 1st half with AR:", actionRequest);
-  console.log("▶️ 1st half with AR:", ARkey);
+  //console.log("🎁 1st half with AR:", actionRequest);
+  console.log("🎁 1st half with AR:", ARkey);
 
   try {
     const response = await fetch(url, {
@@ -319,12 +335,12 @@ async function sendRequests() {
       const text = await response.text();
       const actionRequestMatch = text.match(/actionRequest:\s*"([a-zA-Z0-9]+)"/);
       if (actionRequestMatch) {
-        console.log("🌐 Captured actionRequest from sendRequests:", actionRequestMatch[1]);
+        //console.log("🌐 Captured actionRequest from sendRequests:", actionRequestMatch[1]);
         storeActionRequest(actionRequestMatch[1]);
       }
     }
 
-    console.log("✅ All requests completed successfully");
+    //console.log("✅ All requests completed successfully");
 
   } catch (error) {
     console.error("Error in sendRequests:", error);
@@ -356,7 +372,56 @@ async function sequenceOfBonusesFlow() {
 }
 
 /***************************************************
- * 7. Handle messages from popup
+ * 7. Collect Daily Tasks Favor
+ ***************************************************/
+// async function collectDailyTasksFavor(taskId) {
+//   const { actionRequest, ikariamCookie, cityId, ikariamSubdomain } = await getStorage([
+//     "actionRequest",
+//     "ikariamCookie",
+//     "cityId",
+//     "ikariamSubdomain"
+//   ]);
+
+//   if (!ikariamCookie || !ikariamSubdomain || !actionRequest || !cityId) {
+//     console.error("Missing data. Cannot collect daily task favor.");
+//     return;
+//   }
+
+//   const url = `https://${ikariamSubdomain}.ikariam.gameforge.com/?action=CollectDailyTasksFavor&taskId=${taskId}&ajax=1&backgroundView=city&currentCityId=${cityId}&templateView=dailyTasks&actionRequest=${actionRequest}&ajax=1`;
+
+//   const bodyParams = new URLSearchParams({
+//     action: "CollectDailyTasksFavor",
+//     taskId: taskId.toString(),
+//     ajax: "1",
+//     backgroundView: "city",
+//     currentCityId: cityId,
+//     templateView: "dailyTasks",
+//     actionRequest: actionRequest,
+//     ajax: "1"
+//   });
+
+//   try {
+//     const response = await fetch(url, {
+//       method: "POST",
+//       headers: { 
+//         cookie: ikariamCookie,
+//       },
+//       body: bodyParams.toString()
+//     });
+
+//     const text = await response.text();
+//     const newActionMatch = text.match(/"actionRequest"\s*:\s*"([^"]+)"/);
+//     if (newActionMatch) {
+//       storeActionRequest(newActionMatch[1]);
+//     }
+//     return newActionMatch?.[1];
+//   } catch (err) {
+//     console.error("collectDailyTasksFavor failed:", err);
+//   }
+// }
+
+/***************************************************
+ * 8. Handle messages from popup
  ***************************************************/
 chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Create an async function to handle the message
@@ -371,6 +436,9 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
       } else if (message.action === "prepVideo") {
         await prepVideo();
       }
+      // else if (message.action === "collectDailyTasksFavor") {
+      //   await collectDailyTasksFavor(message.taskId);
+      // }
     } catch (error) {
       console.error('Error handling message:', error);
     }
@@ -382,4 +450,5 @@ chrome.runtime.onMessage.addListener((message, sender, sendResponse) => {
   // Return true to indicate we'll handle the response asynchronously
   return true;
 });
+
 

@@ -1,0 +1,1010 @@
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  padding: 0;
+  margin: 0;
+  min-width: 600px;
+  background: #f8f9fa;
+  color: #333;
+  height: 600px;
+  display: flex;
+  flex-direction: column;
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+body::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-container {
+  display: flex;
+  background: #fff;
+  border-bottom: 1px solid #e9ecef;
+  padding: 4px 10px;
+  justify-content: space-between;  /* This keeps refresh button on the right */
+  align-items: center;
+  flex-shrink: 0;
+  border-top: none;
+  height: 32px;
+}
+
+.tab-buttons-group {
+  display: flex;
+  gap: 16px;  /* Consistent spacing between tabs */
+  margin-right: auto;  /* Push refresh button to the right */
+}
+
+.tab-button {
+  padding: 4px 12px;
+  border: none;
+  background: none;
+  cursor: pointer;
+  font-size: 14px;
+  color: #6c757d;
+  font-weight: 600;
+  border-bottom: 2px solid transparent;
+  transition: all 0.2s ease;
+  height: 100%;
+  display: flex;
+  align-items: center;
+}
+
+.tab-button.active {
+  color: #2962ff;
+  border-bottom-color: #2962ff;
+}
+
+.tab-content {
+  display: none;
+  padding: 4px;
+  flex: 1;
+  overflow-y: auto;
+  height: calc(600px - 60px);
+  scrollbar-width: none;  /* Firefox */
+  -ms-overflow-style: none;  /* IE and Edge */
+}
+
+/* Hide scrollbar for Chrome, Safari and Opera */
+.tab-content::-webkit-scrollbar {
+  display: none;
+}
+
+.tab-content.active {
+  display: block;
+}
+
+.empire-overview {
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  background: #fff;
+  padding: 0 10px;
+  margin-bottom: 1px;
+  position: relative;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.fleet-info {
+  display: flex;
+  gap: 15px;
+  width: 200px;
+  justify-content: center;
+}
+
+.ship-counter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+  color: white;
+  padding: 2px 0;
+  font-weight: 600;
+}
+
+.ship-counter .smallShips,
+.ship-counter .largeShips {
+  font-weight: 700;
+}
+
+.ship-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.cities-container {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  padding-bottom: 4px;
+}
+
+.city-card {
+  position: relative;
+  background: #fff;
+  border-radius: 0;
+  padding: 2px 0;
+  box-shadow: none;
+  width: 100%;
+  margin-bottom: 1px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  background: linear-gradient(to right, 
+    #f5f5f5 0%, 
+    #f5f5f5 20%, 
+    #ffffff 20%, 
+    #ffffff 100%
+  );
+}
+
+.city-card-content {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  background: linear-gradient(to right, 
+    #f5f5f5 0%, 
+    #f5f5f5 20%, 
+    #ffffff 20%, 
+    #ffffff 100%
+  );
+}
+
+.city-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 20%;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.city-name {
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+  max-width: 100%;
+}
+
+.trade-good-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border-radius: 4px;
+  font-size: 0.8em;
+  color: #666;
+}
+
+.trade-good-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
+}
+
+.resources-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  width: 80%;
+  padding: 0 10px;
+}
+
+.resource-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.resource-icon-container {
+  background: none;
+  padding: 2px;
+  border-radius: 4px;
+  margin-bottom: 1px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+}
+
+.resource-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.resource-value {
+  font-size: 0.9em;
+  color: #555;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.cities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.trade-good {
+  display: block;
+  font-size: 0.9em;
+}
+
+.resources {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 3px;
+  text-align: left;
+}
+
+.resources div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px;
+  display: inline-block;
+}
+
+/* Container for first row */
+.resources div:nth-child(-n+3) {
+  grid-row: 1;
+  margin-right: 8px;
+}
+
+/* Container for second row */
+.resources div:nth-child(n+4) {
+  grid-row: 2;
+  margin-right: 8px;
+  margin-left: 20px;  /* Indent the second row */
+}
+
+.resource-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.cities-header {
+  margin-bottom: 10px;
+  text-align: right;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+}
+
+/* Actions Tab Styles */
+.status-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  color: #6c757d;
+  font-size: 0.9em;
+}
+
+.status-value {
+  font-weight: 500;
+  color: #2962ff;
+  max-width: 300px;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.action-group {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.action-title {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #e0e0e0;
+  color: #333;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 42px;
+  justify-content: center;
+}
+
+.action-button:last-child {
+  margin-bottom: 0;
+}
+
+.action-button:hover {
+  background: #bdbdbd;
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.action-icon {
+  font-size: 1.1em;
+}
+
+.bonus-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.bonus-button {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 6px;
+  font-size: 0.9em;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.bonus-button:hover {
+  background: #bbdefb;
+}
+
+.bonus-button .action-icon,
+.bonus-button .bonus-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sequence-button {
+  background: #2962ff;
+  color: #fff;
+  justify-content: center;
+  text-align: center;
+  font-weight: 600;
+  height: auto;
+  padding: 14px;
+  font-size: 1em;
+}
+
+.sequence-button:hover {
+  background: #1e4bd8;
+}
+
+/* Group the tab buttons together */
+.tab-container .tab-button {
+  margin-right: 8px;
+}
+
+/* Style for the refresh button in the tab bar */
+.tab-action-button {
+  padding: 6px 16px;
+  border: none;
+  background: #2962ff;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: auto 4px auto 0;
+  transition: all 0.2s ease;
+  height: 28px;
+}
+
+.tab-action-button:hover {
+  background: #1e4bd8;
+}
+
+.tab-action-button:disabled {
+  background: #c5cae9;
+  cursor: wait;
+}
+
+.refresh-icon {
+  font-size: 1.1em;
+}
+
+.cities-header {
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+/* Actions Tab specific styles */
+#actions.tab-content {
+  overflow-y: auto;
+}
+
+/* Cities Tab specific styles */
+#citiesTab.tab-content {
+  overflow-y: auto;
+  padding-top: 2px;
+}
+
+.header {
+  background: linear-gradient(135deg, #1e88e5 0%, #1565c0 100%);
+  padding: 12px 20px;
+  color: white;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+}
+
+.header-content {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-left {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+}
+
+.header-ships {
+  display: flex;
+  gap: 15px;
+  align-items: center;
+}
+
+.header-icon {
+  width: 32px;
+  height: 32px;
+  border-radius: 6px;
+}
+
+.header-text {
+  display: flex;
+  align-items: baseline;
+  gap: 8px;
+  align-items: center;
+}
+
+.header-text h3 {
+  margin: 0;
+  font-size: 1.2em;
+  font-weight: 600;
+  line-height: 1;
+}
+
+.version-tag {
+  font-size: 0.9em;
+  opacity: 0.8;
+  padding: 2px 6px;
+  border-radius: 4px;
+  display: inline-flex;
+  align-items: center;
+  height: 22px;
+  color: rgba(255,255,255,0.8);
+}
+
+.ship-counter {
+  display: flex;
+  align-items: center;
+  gap: 5px;
+  font-size: 0.9em;
+  color: white;
+  padding: 2px 0;
+  font-weight: 600;
+}
+
+.ship-icon {
+  width: 24px;
+  height: 24px;
+}
+
+.cities-container {
+  display: flex;
+  flex-direction: column;
+  padding: 0;
+  padding-bottom: 4px;
+}
+
+.city-card {
+  position: relative;
+  background: #fff;
+  border-radius: 0;
+  padding: 2px 0;
+  box-shadow: none;
+  width: 100%;
+  margin-bottom: 1px;
+  border-bottom: 1px solid #e9ecef;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 0;
+  overflow: hidden;
+  background: linear-gradient(to right, 
+    #f5f5f5 0%, 
+    #f5f5f5 20%, 
+    #ffffff 20%, 
+    #ffffff 100%
+  );
+}
+
+.city-card-content {
+  display: flex;
+  width: 100%;
+  align-items: center;
+  background: linear-gradient(to right, 
+    #f5f5f5 0%, 
+    #f5f5f5 20%, 
+    #ffffff 20%, 
+    #ffffff 100%
+  );
+}
+
+.city-header {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  width: 20%;
+  padding: 2px 6px;
+  border-radius: 4px;
+}
+
+.city-name {
+  font-weight: 600;
+  color: #333;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+  max-width: 100%;
+}
+
+.trade-good-badge {
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  background: none;
+  border-radius: 4px;
+  font-size: 0.8em;
+  color: #666;
+}
+
+.trade-good-icon {
+  width: 16px;
+  height: 16px;
+  opacity: 0.8;
+}
+
+.resources-grid {
+  display: flex;
+  justify-content: space-between;
+  gap: 5px;
+  width: 80%;
+  padding: 0 10px;
+}
+
+.resource-item {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  flex: 1;
+  text-align: center;
+  min-width: 0;
+}
+
+.resource-icon-container {
+  background: none;
+  padding: 2px;
+  border-radius: 4px;
+  margin-bottom: 1px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  width: 18px;
+  height: 18px;
+}
+
+.resource-icon {
+  width: 16px;
+  height: 16px;
+  object-fit: contain;
+}
+
+.resource-value {
+  font-size: 0.9em;
+  color: #555;
+  font-weight: 500;
+  width: 100%;
+  text-align: center;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  line-height: 1;
+}
+
+.cities-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(150px, 1fr));
+  gap: 10px;
+}
+
+.trade-good {
+  display: block;
+  font-size: 0.9em;
+}
+
+.resources {
+  display: grid;
+  grid-template-rows: auto auto;
+  gap: 3px;
+  text-align: left;
+}
+
+.resources div {
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  padding: 2px;
+  display: inline-block;
+}
+
+/* Container for first row */
+.resources div:nth-child(-n+3) {
+  grid-row: 1;
+  margin-right: 8px;
+}
+
+/* Container for second row */
+.resources div:nth-child(n+4) {
+  grid-row: 2;
+  margin-right: 8px;
+  margin-left: 20px;  /* Indent the second row */
+}
+
+.resource-icon {
+  width: 16px;
+  height: 16px;
+  vertical-align: middle;
+  margin-right: 4px;
+}
+
+.cities-header {
+  margin-bottom: 10px;
+  text-align: right;
+  position: absolute;
+  top: 10px;
+  right: 20px;
+}
+
+/* Actions Tab Styles */
+.status-panel {
+  background: #fff;
+  border-radius: 8px;
+  padding: 15px;
+  margin-bottom: 20px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.status-item {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  padding: 8px 0;
+  border-bottom: 1px solid #e9ecef;
+}
+
+.status-item:last-child {
+  border-bottom: none;
+}
+
+.status-label {
+  color: #6c757d;
+  font-size: 0.9em;
+}
+
+.status-value {
+  font-weight: 500;
+  color: #2962ff;
+  max-width: 300px;
+}
+
+.truncate {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.actions-container {
+  display: flex;
+  flex-direction: column;
+  gap: 20px;
+}
+
+.action-group {
+  background: #fff;
+  border-radius: 8px;
+  padding: 12px;
+  box-shadow: 0 2px 4px rgba(0,0,0,0.05);
+}
+
+.action-title {
+  margin: 0 0 8px 0;
+  color: #333;
+  font-size: 0.9em;
+  font-weight: 600;
+}
+
+.action-button {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  width: 100%;
+  padding: 8px;
+  margin-bottom: 8px;
+  border: none;
+  border-radius: 6px;
+  background: #e0e0e0;
+  color: #333;
+  font-size: 1em;
+  font-weight: 600;
+  cursor: pointer;
+  transition: all 0.2s ease;
+  height: 42px;
+  justify-content: center;
+}
+
+.action-button:last-child {
+  margin-bottom: 0;
+}
+
+.action-button:hover {
+  background: #bdbdbd;
+}
+
+.action-button:disabled {
+  opacity: 0.6;
+  cursor: wait;
+}
+
+.action-icon {
+  font-size: 1.1em;
+}
+
+.bonus-buttons {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 4px;
+}
+
+.bonus-button {
+  background: #e3f2fd;
+  color: #1976d2;
+  padding: 6px;
+  font-size: 0.9em;
+  height: 42px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 4px;
+  font-weight: 600;
+}
+
+.bonus-button:hover {
+  background: #bbdefb;
+}
+
+.bonus-button .action-icon,
+.bonus-button .bonus-icon {
+  width: 20px;
+  height: 20px;
+}
+
+.sequence-button {
+  background: #2962ff;
+  color: #fff;
+  justify-content: center;
+  text-align: center;
+  font-weight: 600;
+  height: auto;
+  padding: 14px;
+  font-size: 1em;
+}
+
+.sequence-button:hover {
+  background: #1e4bd8;
+}
+
+/* Group the tab buttons together */
+.tab-container .tab-button {
+  margin-right: 8px;
+}
+
+/* Style for the refresh button in the tab bar */
+.tab-action-button {
+  padding: 6px 16px;
+  border: none;
+  background: #2962ff;
+  color: #fff;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  display: flex;
+  align-items: center;
+  gap: 4px;
+  margin: auto 4px auto 0;
+  transition: all 0.2s ease;
+  height: 28px;
+}
+
+.tab-action-button:hover {
+  background: #1e4bd8;
+}
+
+.tab-action-button:disabled {
+  background: #c5cae9;
+  cursor: wait;
+}
+
+.refresh-icon {
+  font-size: 1.1em;
+}
+
+.cities-header {
+  margin-bottom: 10px;
+  text-align: right;
+}
+
+/* Actions Tab specific styles */
+#actions.tab-content {
+  overflow-y: auto;
+}
+
+/* Cities Tab specific styles */
+#citiesTab.tab-content {
+  overflow-y: auto;
+  padding-top: 2px;
+}
+
+/* Container for tab buttons */
+.tab-container > div:first-child {
+  display: flex;
+  align-items: center;
+  height: 100%;
+}
+
+/* Settings tab placeholder styles */
+.settings-placeholder {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  padding: 40px;
+  text-align: center;
+  color: #6c757d;
+}
+
+.settings-placeholder h3 {
+  margin: 0 0 10px 0;
+  font-size: 1.2em;
+}
+
+.settings-placeholder p {
+  margin: 0;
+  font-size: 0.9em;
+  opacity: 0.8;
+}
+
+.city-header.clickable {
+  cursor: pointer;
+  transition: opacity 0.2s ease;
+}
+
+.city-header.clickable:hover {
+  opacity: 0.8;
+}
+
+.city-controls {
+  position: relative;
+  left: 0;
+  width: 100%;
+  background: #f8f9fa;
+  margin-top: 1px;
+  overflow: hidden;
+  transition: max-height 0.2s ease-out;
+  max-height: 0;
+  background: linear-gradient(to right, 
+    #f5f5f5 0%, 
+    #f5f5f5 20%, 
+    #ffffff 20%, 
+    #ffffff 100%
+  );
+}
+
+.city-controls.expanded {
+  max-height: 100px;
+}
+
+.controls-content {
+  padding: 10px;
+  margin-left: 20%;
+}
+
+.controls-content h4 {
+  margin: 0 0 8px 0;
+  font-size: 0.9em;
+  color: #666;
+}
+
+.control-buttons {
+  display: flex;
+  gap: 8px;
+}
+
+.control-btn {
+  padding: 4px 12px;
+  border: none;
+  background: #e0e0e0;
+  color: #333;
+  border-radius: 4px;
+  cursor: pointer;
+  font-size: 0.85em;
+  font-weight: 600;
+  transition: background 0.2s ease;
+}
+
+.control-btn:hover {
+  background: #bdbdbd;
+} 

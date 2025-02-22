@@ -5,6 +5,14 @@ let storageLock = false;
 let lockTimeout = null; // Safety timeout
 let seenKeys = [];
 
+// Constants
+const TRADE_GOODS = {
+  WINE: 'Wine',
+  MARBLE: 'Marble',
+  CRYSTAL: 'Crystal',
+  sulphur: 'sulphur'
+};
+
 // =============================
 // HELPER FUNCTIONS
 // =============================
@@ -18,9 +26,9 @@ async function getStorage(keys) {
   });
 }
 
-async function setStorage(data) {
+async function setStorage(items) {
   return new Promise((resolve) => {
-    chrome.storage.local.set(data, resolve);
+    chrome.storage.local.set(items, resolve);
   });
 }
 
@@ -105,10 +113,154 @@ loadSeenKeys().then(() => {
     console.log("🚀 Extension started with seenKeys:", seenKeys);
 });
 
-// Export functions that need to be accessible from background.js
+// Account management
+async function getCurrentUserId() {
+  const { ikariamCookie } = await getStorage(['ikariamCookie']);
+  if (!ikariamCookie) return null;
+  
+  const match = ikariamCookie.match(/ikariam=(\d+)_/);
+  return match ? match[1] : null;
+}
+
+async function getOrCreateAccount(userId) {
+  const { accounts } = await getStorage(['accounts']);
+  if (!accounts[userId]) {
+    accounts[userId] = {
+      cities: {},
+      server: null,
+      availableSmallShips: 0,
+      availableLargeShips: 0,
+      latestUpdate: 0
+    };
+    await setStorage({ accounts });
+  }
+  return accounts[userId];
+}
+
+// City management
+async function updateCities(userId, newCities) {
+  const { accounts } = await getStorage(['accounts']);
+  const account = accounts[userId];
+  
+  if (!account) return false;
+  
+  // Preserve special trade goods for existing cities
+  const updatedCities = {};
+  for (const [cityId, cityData] of Object.entries(newCities)) {
+    updatedCities[cityId] = {
+      ...cityData,
+      specialTradeGood: account.cities[cityId]?.specialTradeGood || null
+    };
+  }
+  
+  account.cities = updatedCities;
+  await setStorage({ accounts });
+  return true;
+}
+
+async function updateCityTradeGood(userId, cityId, tradeGood) {
+  if (!Object.values(TRADE_GOODS).includes(tradeGood)) {
+    throw new Error('Invalid trade good type');
+  }
+
+  const { accounts } = await getStorage(['accounts']);
+  const account = accounts[userId];
+  
+  if (!account || !account.cities[cityId]) return false;
+  
+  account.cities[cityId].specialTradeGood = tradeGood;
+  await setStorage({ accounts });
+  return true;
+}
+
+// Data retrieval
+async function getCurrentAccountData() {
+  const userId = await getCurrentUserId();
+  if (!userId) return null;
+  
+  const { accounts } = await getStorage(['accounts']);
+  return accounts[userId];
+}
+
+async function getAllAccounts() {
+  const { accounts = {} } = await getStorage(['accounts']);
+  return accounts;
+}
+
+// Add this function before the export block
+async function updateAccountData(userId, updates) {
+  const { accounts } = await getStorage(['accounts']);
+  if (!accounts[userId]) {
+    accounts[userId] = {
+      cities: {},
+      server: null,
+      availableSmallShips: 0,
+      availableLargeShips: 0,
+      latestUpdate: 0
+    };
+  }
+
+  // Deep merge the updates
+  accounts[userId] = {
+    ...accounts[userId],
+    ...updates,
+    cities: {
+      ...accounts[userId].cities,
+      ...(updates.cities || {})
+    }
+  };
+
+  await setStorage({ accounts });
+  return accounts[userId];
+}
+
+// Get a specific user's data
+async function getUserData(userId) {
+  const { accounts } = await getStorage(['accounts']);
+  return accounts?.[userId];
+}
+
+// Update a specific user's data
+export async function updateUserData(userId, data) {
+  const { accounts } = await getStorage(['accounts']);
+  if (!accounts[userId]) {
+    accounts[userId] = {};
+  }
+
+  // Update the user data
+  accounts[userId] = {
+    ...accounts[userId],
+    ...data,
+    latestUpdate: Date.now()  // Add timestamp on every user data update
+  };
+
+  await setStorage({ accounts });
+  return accounts[userId];
+}
+
+// Add this new function
+export async function updateUserTimestamp(userId) {
+  const { accounts } = await getStorage(['accounts']);
+  if (!accounts[userId]) return;
+
+  accounts[userId].latestUpdate = Date.now();
+  await setStorage({ accounts });
+  return accounts[userId];
+}
+
+// Keep the existing export block
 export {
   sleep,
   storeActionRequest,
   getStorage,
-  setStorage
+  setStorage,
+  getUserData,
+  TRADE_GOODS,
+  getCurrentUserId,
+  getOrCreateAccount,
+  updateCities,
+  updateCityTradeGood,
+  getCurrentAccountData,
+  getAllAccounts,
+  updateAccountData,
 }; 
